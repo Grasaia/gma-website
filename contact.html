@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Contact - Grandma's Ministry</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="teachings.html">Teachings</a>
+    <a href="about.html">About</a>
+    <a href="contact.html">Contact</a>
+  </nav>
+
+  <header>
+    <h1 class="container">Contact & Prayer Requests</h1>
+  </header>
+
+  <section class="container">
+    <div class="card">
+      <h2>Contact Us</h2>
+      <form id="contact-form">
+        <label for="contact-name">Name</label>
+        <input type="text" id="contact-name" required>
+        <label for="contact-email">Email</label>
+        <input type="email" id="contact-email" required>
+        <label for="contact-message">Message</label>
+        <textarea id="contact-message" rows="5" required></textarea>
+        <label><input type="checkbox" id="pray-request"> This is a prayer request</label>
+        <button type="submit">Send Message</button>
+      </form>
+      <div id="contact-feedback" style="display:none;margin-top:12px;"></div>
+
+      <h3 style="margin-top:20px;">Other ways to reach us</h3>
+      <p>Email: <a href="mailto:info@example.com">info@example.com</a></p>
+      <p>Or use the donations / bookings links in the footer widgets.</p>
+    </div>
+  </section>
+
+  <footer>
+    <div class="widgets">
+      <a href="events.html">Events</a>
+      <a href="portfolio.html">Portfolio</a>
+      <a href="donations.html">Donations</a>
+      <a href="blog.html">Blog</a>
+      <a href="bookings.html">Bookings</a>
+    </div>
+  </footer>
+
+  <script src="scripts.js"></script>
+  <script>
+  // handle contact form submit and save to Firestore
+  document.getElementById('contact-form').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const name = document.getElementById('contact-name').value.trim();
+    const email = document.getElementById('contact-email').value.trim();
+    const message = document.getElementById('contact-message').value.trim();
+    const prayer = document.getElementById('pray-request').checked;
+    const feedback = document.getElementById('contact-feedback');
+    try{
+      // save to Firestore
+      await saveContactMessage({name,email,message,prayer,createdAt:new Date()});
+      feedback.style.display='block'; feedback.innerText='Message sent. Thank you!';
+      document.getElementById('contact-form').reset();
+    }catch(err){
+      feedback.style.display='block'; feedback.innerText='Error sending message. Check Firebase setup in scripts.js.';
+    }
+  });
+  </script>
+</body>
+</html>

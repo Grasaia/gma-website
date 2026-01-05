@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Events - Grandma's Ministry</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="teachings.html">Teachings</a>
+    <a href="about.html">About</a>
+    <a href="contact.html">Contact</a>
+  </nav>
+
+  <section class="container">
+    <h1>Upcoming Events</h1>
+    <p>Events are stored in Firestore when connected, with localStorage fallback for quick testing.</p>
+
+    <div class="card">
+      <h3>Add Event (admin)</h3>
+      <form id="event-form">
+        <label for="evt-title">Title</label>
+        <input id="evt-title" required>
+        <label for="evt-date">Date</label>
+        <input id="evt-date" type="date" required>
+        <label for="evt-location">Location</label>
+        <input id="evt-location">
+        <label for="evt-link">Optional link (RSVP / info)</label>
+        <input id="evt-link" placeholder="https://...">
+        <button type="submit">Add Event</button>
+      </form>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <h3>Upcoming</h3>
+      <div id="eventsList">Loading events...</div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="widgets">
+      <a href="events.html">Events</a>
+      <a href="portfolio.html">Portfolio</a>
+      <a href="donations.html">Donations</a>
+      <a href="blog.html">Blog</a>
+      <a href="bookings.html">Bookings</a>
+    </div>
+  </footer>
+
+  <!-- Firebase (compat) scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <script src="scripts.js"></script>
+  <script>
+  // event form handling and rendering
+  async function renderEvents(){
+    const list = document.getElementById('eventsList');
+    list.innerHTML='Loading...';
+    try{
+      const events = await getUpcomingEvents();
+      if(!events.length){ list.innerHTML='<p>No events scheduled.</p>'; return; }
+      list.innerHTML='';
+      events.forEach(e=>{
+        const div = document.createElement('div'); div.className='card'; div.style.marginBottom='8px';
+        div.innerHTML = `<h4>${e.title}</h4><p>${e.date} • ${e.location || ''}</p><p><a href='${e.link||"#"}' target='_blank'>More info</a> <a href='${createGCalLink(e.title,e.date,e.link,e.location)}' target='_blank'>Add to Google Calendar</a> <a href='#' data-ics='${encodeURIComponent(makeICS(e))}' class='download-ics'>Download .ics</a></p>`;
+        list.appendChild(div);
+      });
+      document.querySelectorAll('.download-ics').forEach(a=>{
+        a.addEventListener('click',function(ev){
+          ev.preventDefault();
+          const data = decodeURIComponent(this.getAttribute('data-ics'));
+          const blob = new Blob([data],{type:'text/calendar;charset=utf-8'});
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a'); link.href = url; link.download = 'event.ics'; document.body.appendChild(link); link.click(); link.remove();
+        });
+      });
+    }catch(e){ list.innerHTML='<p>Error loading events.</p>'; console.error(e); }
+  }
+
+  function createGCalLink(title,date,link,location){
+    // date is YYYY-MM-DD; use all-day event format YYYYMMDD/YYYYMMDD (end date = next day)
+    const start = date.replace(/-/g,'');
+    const endDate = new Date(date); endDate.setDate(endDate.getDate()+1);
+    const end = endDate.toISOString().slice(0,10).replace(/-/g,'');
+    const params = new URLSearchParams({action:'TEMPLATE',text:title,dates:`${start}/${end}`,details:link||'',location:location||''});
+    return `https://www.google.com/calendar/render?${params.toString()}`;
+  }
+
+  function makeICS(ev){
+    const uid = Date.now();
+    const dtstamp = new Date().toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
+    const start = ev.date.replace(/-/g,'');
+    const endDate = new Date(ev.date); endDate.setDate(endDate.getDate()+1);
+    const end = endDate.toISOString().slice(0,10).replace(/-/g,'');
+    return `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nUID:${uid}\nDTSTAMP:${dtstamp}\nDTSTART;VALUE=DATE:${start}\nDTEND;VALUE=DATE:${end}\nSUMMARY:${ev.title}\nDESCRIPTION:${ev.link||''}\nLOCATION:${ev.location||''}\nEND:VEVENT\nEND:VCALENDAR`;
+  }
+
+  document.getElementById('event-form').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const title = document.getElementById('evt-title').value.trim();
+    const date = document.getElementById('evt-date').value;
+    const location = document.getElementById('evt-location').value.trim();
+    const link = document.getElementById('evt-link').value.trim();
+    if(!title||!date) return alert('Title and date required');
+    try{
+      await saveEvent({title,date,location,link,createdAt:new Date()});
+      this.reset();
+      renderEvents();
+    }catch(err){ alert('Error saving event. Check Firebase setup.'); }
+  });
+
+  document.addEventListener('DOMContentLoaded', function(){ renderEvents(); });
+  </script>
+</body>
+</html>

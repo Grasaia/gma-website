@@ -1,19 +1,120 @@
-<div id="teachings-page" style="display:none">
-<h2>Teachings</h2>
-<p>Watch all teachings and messages on our YouTube channel.</p>
-<a href="#" class="btn">Visit YouTube Channel</a>
-<div class="video-catalog">
-<div class="video-card">
-<iframe width="100%" height="200" src="https://www.youtube.com/embed/VIDEO_ID" frameborder="0" allowfullscreen></iframe>
-<h4>Teaching Title</h4>
-<small>Posted: 2026-01-05</small>
-<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
-</div>
-</div>
-<div class="comments">
-<h3>Questions & Feedback</h3>
-<textarea placeholder="Leave your message here..."></textarea>
-<button>Submit</button>
-</div>
-</div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Teachings - Grandma's Ministry</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="teachings.html">Teachings</a>
+    <a href="about.html">About</a>
+    <a href="contact.html">Contact</a>
+  </nav>
+
+  <header>
+    <h1 class="container">Teachings</h1>
+  </header>
+
+  <section class="container">
+    <p>Watch all teachings and messages on our YouTube channel. Click a card to load the video (lazy-loaded to keep the page fast).</p>
+    <div id="videoCatalog" class="video-catalog"></div>
+  </section>
+
+  <footer>
+    <div class="widgets">
+      <a href="events.html">Events</a>
+      <a href="portfolio.html">Portfolio</a>
+      <a href="donations.html">Donations</a>
+      <a href="blog.html">Blog</a>
+      <a href="bookings.html">Bookings</a>
+    </div>
+  </footer>
+
+  <!-- Firebase (compat) scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <script src="scripts.js"></script>
+  <script>
+  // sample videos array - easy to add more
+  const videos = [
+    {id:'vid-1',youtubeId:'VIDEO_ID',title:'Teaching Title',date:'2026-01-05',desc:'Lorem ipsum dolor sit amet.'},
+    // add objects here for more videos
+  ];
+
+  function renderVideos(){
+    const catalog = document.getElementById('videoCatalog');
+    catalog.innerHTML='';
+    videos.forEach(v=>{
+      const card = document.createElement('div'); card.className='video-card';
+      card.innerHTML = `
+        <div class="embed-wrap" data-yt="${v.youtubeId}">
+          <div class="thumb" style="background:#000;color:#fff;padding:40px;text-align:center;cursor:pointer">Click to load video</div>
+        </div>
+        <h4>${v.title}</h4>
+        <small>Posted: ${v.date}</small>
+        <p>${v.desc}</p>
+        <a href="https://youtube.com/watch?v=${v.youtubeId}" target="_blank">Watch on YouTube</a>
+        <div class="comments" id="comments-${v.id}">
+          <h4>Comments</h4>
+          <input placeholder="Your name" class="comment-name">
+          <textarea placeholder="Your message" class="comment-msg"></textarea>
+          <button class="comment-submit">Submit</button>
+          <div class="comments-list"></div>
+        </div>
+      `;
+      // attach listeners after insertion
+      catalog.appendChild(card);
+    });
+
+    // attach play and comment handlers
+    document.querySelectorAll('.embed-wrap').forEach(el=>{
+      el.addEventListener('click', function(){
+        if(this.querySelector('iframe')) return;
+        const yt = this.getAttribute('data-yt');
+        this.innerHTML = `<iframe src="https://www.youtube.com/embed/${yt}" frameborder="0" allowfullscreen></iframe>`;
+      });
+    });
+
+    document.querySelectorAll('.comment-submit').forEach((btn, i)=>{
+      btn.addEventListener('click', async function(){
+        const wrapper = this.parentElement;
+        const name = wrapper.querySelector('.comment-name').value.trim() || 'Anonymous';
+        const message = wrapper.querySelector('.comment-msg').value.trim();
+        if(!message) return alert('Please write a message');
+        const vid = videos[i].id;
+        try{
+          await saveComment({videoId:vid,name,message,createdAt:new Date()});
+          wrapper.querySelector('.comment-msg').value='';
+          loadCommentsFor(videos[i].id);
+        }catch(e){ alert('Error saving comment. Check Firebase setup.'); }
+      });
+    });
+
+    // load comments for each video
+    videos.forEach(v=>loadCommentsFor(v.id));
+  }
+
+  async function loadCommentsFor(videoId){
+    try{
+      const list = document.querySelector(`#comments-${videoId} .comments-list`);
+      if(!list) return;
+      list.innerHTML='Loading...';
+      const comments = await getCommentsForVideo(videoId);
+      if(!comments.length){ list.innerHTML='<p>No comments yet.</p>'; return; }
+      list.innerHTML = '';
+      comments.forEach(c=>{
+        const div = document.createElement('div');
+        div.className='comment';
+        div.innerHTML = `<div class="meta">${c.name} • ${fmtDate(c.createdAt)}</div><div class="text">${c.message}</div>`;
+        list.appendChild(div);
+      });
+    }catch(e){ console.warn('Comments load error',e); }
+  }
+
+  // Init rendering when ready
+  document.addEventListener('DOMContentLoaded', function(){ renderVideos(); });
+  </script>
+</body>
 </html>
