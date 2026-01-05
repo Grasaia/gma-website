@@ -183,5 +183,49 @@ async function saveContactMessage(data){
   }
 }
 
+// Videos: saveVideo, getAllVideos (Firestore with localStorage fallback)
+const LOCAL_VIDEOS_KEY = 'gma_videos';
+async function saveVideo({youtubeId,title,date,desc,createdAt=new Date()}){
+  const entry = {youtubeId,title,date,desc,createdAt};
+  if(db){
+    return db.collection('videos').add(entry);
+  }else{
+    const arr = JSON.parse(localStorage.getItem(LOCAL_VIDEOS_KEY)||'[]');
+    const v = {...entry,id:Date.now().toString()};
+    arr.unshift(v);
+    localStorage.setItem(LOCAL_VIDEOS_KEY,JSON.stringify(arr));
+    return Promise.resolve(v);
+  }
+}
+async function getAllVideos(){
+  if(db){
+    const snap = await db.collection('videos').orderBy('createdAt','desc').get();
+    return snap.docs.map(d=>({id:d.id, ...d.data()}));
+  }else{
+    return JSON.parse(localStorage.getItem(LOCAL_VIDEOS_KEY)||'[]');
+  }
+}
+
 // 4) Utility: format date
 function fmtDate(d){ try{ return new Date(d.seconds ? d.seconds*1000 : d).toLocaleString(); }catch(e){ return String(d); }}
+
+// -----------------
+// Button press visuals (adds .pressed on pointer/keyboard interactions)
+// -----------------
+(function(){
+  function addPressed(el){ el.classList.add('pressed'); }
+  function removePressed(el){ el.classList.remove('pressed'); }
+  document.addEventListener('pointerdown', e => { const btn = e.target.closest('button, .btn'); if(btn) addPressed(btn); });
+  document.addEventListener('pointerup', e => { const btn = e.target.closest('button, .btn'); if(btn) removePressed(btn); });
+  document.addEventListener('pointercancel', e => { const btn = e.target.closest('button, .btn'); if(btn) removePressed(btn); });
+  document.addEventListener('keydown', e => {
+    if((e.key === ' ' || e.key === 'Enter') && document.activeElement && (document.activeElement.tagName === 'BUTTON' || document.activeElement.classList.contains('btn'))){
+      document.activeElement.classList.add('pressed');
+    }
+  });
+  document.addEventListener('keyup', e => {
+    if((e.key === ' ' || e.key === 'Enter') && document.activeElement && (document.activeElement.tagName === 'BUTTON' || document.activeElement.classList.contains('btn'))){
+      document.activeElement.classList.remove('pressed');
+    }
+  });
+})();

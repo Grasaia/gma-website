@@ -37,39 +37,49 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
   <script src="scripts.js"></script>
   <script>
-  // sample videos array - easy to add more
-  const videos = [
-    {id:'vid-1',youtubeId:'VIDEO_ID',title:'Teaching Title',date:'2026-01-05',desc:'Lorem ipsum dolor sit amet.'},
-    // add objects here for more videos
+  // Default videos (used if none in storage/Firestore)
+  const defaultVideos = [
+    {id:'vid-1',youtubeId:'VIDEO_ID',title:'Teaching Title',date:'2026-01-05',desc:'Lorem ipsum dolor sit amet.'}
   ];
+  let videos = [];
 
-  function renderVideos(){
+  // small helper to extract YouTube ID from a URL or ID
+  function extractYouTubeId(input){
+    if(!input) return '';
+    const idMatch = input.match(/[?&]v=([^&]+)/);
+    if(idMatch) return idMatch[1];
+    const shortMatch = input.match(/youtu\.be\/([^?]+)/);
+    if(shortMatch) return shortMatch[1];
+    // assume raw id
+    return input;
+  }
+
+  async function renderVideos(){
     const catalog = document.getElementById('videoCatalog');
     catalog.innerHTML='';
     videos.forEach(v=>{
-      const card = document.createElement('div'); card.className='video-card';
+      const card = document.createElement('div'); card.className='video-card'; card.setAttribute('data-id', v.id);
       card.innerHTML = `
         <div class="embed-wrap" data-yt="${v.youtubeId}">
           <div class="thumb" style="background:#000;color:#fff;padding:40px;text-align:center;cursor:pointer">Click to load video</div>
         </div>
-        <h4>${v.title}</h4>
-        <small>Posted: ${v.date}</small>
-        <p>${v.desc}</p>
+        <h4>${v.title} ${videos.indexOf(v)===0?'<span style="background:#f2c94c;color:#111;padding:4px 8px;border-radius:6px;font-size:12px;margin-left:8px">Newest</span>':''}</h4>
+        <small>${v.date?('Posted: '+v.date):''}</small>
+        <p>${v.desc || ''}</p>
         <a href="https://youtube.com/watch?v=${v.youtubeId}" target="_blank">Watch on YouTube</a>
         <div class="comments" id="comments-${v.id}">
           <h4>Comments</h4>
-          <input placeholder="Your name" class="comment-name">
-          <textarea placeholder="Your message" class="comment-msg"></textarea>
+          <input placeholder="Your name" class="comment-name" aria-label="Your name">
+          <textarea placeholder="Your message" class="comment-msg" aria-label="Your message"></textarea>
           <button class="comment-submit">Submit</button>
           <div class="comments-list"></div>
         </div>
       `;
-      // attach listeners after insertion
       catalog.appendChild(card);
     });
 
-    // attach play and comment handlers
-    document.querySelectorAll('.embed-wrap').forEach(el=>{
+    // attach play handlers
+    catalog.querySelectorAll('.embed-wrap').forEach(el=>{
       el.addEventListener('click', function(){
         if(this.querySelector('iframe')) return;
         const yt = this.getAttribute('data-yt');
@@ -77,18 +87,23 @@
       });
     });
 
-    document.querySelectorAll('.comment-submit').forEach((btn, i)=>{
+    // attach comment handlers (use closest comments container to find video id)
+    catalog.querySelectorAll('.comment-submit').forEach(btn=>{
       btn.addEventListener('click', async function(){
-        const wrapper = this.parentElement;
+        const wrapper = this.closest('.comments');
         const name = wrapper.querySelector('.comment-name').value.trim() || 'Anonymous';
         const message = wrapper.querySelector('.comment-msg').value.trim();
         if(!message) return alert('Please write a message');
-        const vid = videos[i].id;
+        const vid = wrapper.id.replace('comments-','');
         try{
+          // button pressed visual
+          this.classList.add('pressed');
+          this.disabled = true; this.innerText='Posting...';
           await saveComment({videoId:vid,name,message,createdAt:new Date()});
           wrapper.querySelector('.comment-msg').value='';
-          loadCommentsFor(videos[i].id);
+          await loadCommentsFor(vid);
         }catch(e){ alert('Error saving comment. Check Firebase setup.'); }
+        finally{ this.disabled=false; this.classList.remove('pressed'); this.innerText='Submit'; }
       });
     });
 
@@ -113,8 +128,64 @@
     }catch(e){ console.warn('Comments load error',e); }
   }
 
+  // Add video admin form (grandma can add new videos)
+  async function initAddVideoForm(){
+    const container = document.createElement('div'); container.className='card'; container.style.marginBottom='16px';
+    container.innerHTML = `
+      <h3>Add New Video (admin)</h3>
+      <form id="addVideoForm">
+        <label for="yt-input">YouTube URL or ID</label>
+        <input id="yt-input" required>
+        <label for="vid-title">Title</label>
+        <input id="vid-title" required>
+        <label for="vid-date">Date</label>
+        <input id="vid-date" type="date" value="${new Date().toISOString().slice(0,10)}">
+        <label for="vid-desc">Description</label>
+        <textarea id="vid-desc" rows="3"></textarea>
+        <button class="btn" type="submit">Add Video</button>
+      </form>
+      <p style="font-size:13px;color:#666;margin-top:8px">Tip: paste a full YouTube URL or the video id.</p>
+    `;
+    const section = document.querySelector('.container');
+    section.insertBefore(container, section.querySelector('#videoCatalog'));
+
+    document.getElementById('addVideoForm').addEventListener('submit', async function(e){
+      e.preventDefault();
+      const raw = document.getElementById('yt-input').value.trim();
+      const youtubeId = extractYouTubeId(raw);
+      const title = document.getElementById('vid-title').value.trim();
+      const date = document.getElementById('vid-date').value;
+      const desc = document.getElementById('vid-desc').value.trim();
+      if(!youtubeId || !title) return alert('YouTube ID and Title are required');
+      try{
+        const saved = await saveVideo({youtubeId,title,date,desc,createdAt:new Date()});
+        // If Firestore returns an id, map it; otherwise saved will include id
+        const newId = saved.id || saved.name || ('vid-'+Date.now());
+        const newV = {id:newId,youtubeId,title,date,desc};
+        videos.unshift(newV);
+        renderVideos();
+        this.reset();
+        alert('Video added');
+      }catch(e){ console.error(e); alert('Error adding video. Check Firebase setup.'); }
+    });
+  }
+
   // Init rendering when ready
-  document.addEventListener('DOMContentLoaded', function(){ renderVideos(); });
+  document.addEventListener('DOMContentLoaded', async function(){
+    // Create CTA
+    const cta = document.createElement('p'); cta.innerHTML = "<strong>This is where all of my videos can be found. I am always uploading new content.</strong> <a href='#videoCatalog' class='btn'>Access Catalog</a>";
+    const section = document.querySelector('.container'); section.insertBefore(cta, section.firstChild);
+
+    // Load videos from storage or fallback
+    try{
+      const stored = await getAllVideos();
+      if(stored && stored.length) videos = stored.map(v=>({id:v.id || ('vid-'+Date.now()), youtubeId:v.youtubeId, title:v.title, date:v.date, desc:v.desc}));
+      else videos = defaultVideos.slice();
+    }catch(e){ videos = defaultVideos.slice(); }
+
+    await initAddVideoForm();
+    renderVideos();
+  });
   </script>
 </body>
 </html>
