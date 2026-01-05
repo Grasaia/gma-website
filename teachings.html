@@ -6,12 +6,22 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <nav>
-    <a href="index.html">Home</a>
-    <a href="teachings.html">Teachings</a>
-    <a href="about.html">About</a>
-    <a href="contact.html">Contact</a>
-  </nav>
+  <header class="site-header">
+    <div class="container">
+      <div class="site-title">
+        <img src="img/gma-pfp.jpg" alt="Grandma logo">
+        <h1>Grandma's Ministry</h1>
+      </div>
+      <button id="hamburgerBtn" class="hamburger" aria-label="Toggle menu">☰</button>
+      <nav class="primary">
+        <a href="index.html">Home</a>
+        <a href="teachings.html">Teachings</a>
+        <a href="about.html">About</a>
+        <a href="contact.html">Contact</a>
+        <a href="donations.html" class="cta">Donate</a>
+      </nav>
+    </div>
+  </header>
 
   <header>
     <h1 class="container">Teachings</h1>
@@ -61,12 +71,15 @@
       const card = document.createElement('div'); card.className='video-card'; card.setAttribute('data-id', v.id);
       card.innerHTML = `
         <div class="embed-wrap" data-yt="${v.youtubeId}">
-          <div class="thumb" style="background:#000;color:#fff;padding:40px;text-align:center;cursor:pointer">Click to load video</div>
+          <img class="thumb-img" src="https://img.youtube.com/vi/${v.youtubeId}/hqdefault.jpg" alt="${v.title}">
+          <div style="position:absolute;left:8px;right:8px;top:8px;bottom:8px;display:flex;align-items:center;justify-content:center;pointer-events:none"><div style="width:64px;height:64px;background:rgba(0,0,0,0.6);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:28px">▶</div></div>
         </div>
-        <h4>${v.title} ${videos.indexOf(v)===0?'<span style="background:#f2c94c;color:#111;padding:4px 8px;border-radius:6px;font-size:12px;margin-left:8px">Newest</span>':''}</h4>
-        <small>${v.date?('Posted: '+v.date):''}</small>
-        <p>${v.desc || ''}</p>
-        <a href="https://youtube.com/watch?v=${v.youtubeId}" target="_blank">Watch on YouTube</a>
+        <div class="video-body">
+          <h4>${v.title} ${videos.indexOf(v)===0?'<span style="background:var(--color-accent);color:#111;padding:4px 8px;border-radius:6px;font-size:12px;margin-left:8px">Newest</span>':''}</h4>
+          <small>${v.date?('Posted: '+v.date):''}</small>
+          <p>${v.desc || ''}</p>
+          <a class="watch-link" href="https://youtube.com/watch?v=${v.youtubeId}" target="_blank">Watch on YouTube</a>
+        </div>
         <div class="comments" id="comments-${v.id}">
           <h4>Comments</h4>
           <input placeholder="Your name" class="comment-name" aria-label="Your name">
@@ -78,14 +91,23 @@
       catalog.appendChild(card);
     });
 
-    // attach play handlers
+    // attach play handlers -> open detail dialog
     catalog.querySelectorAll('.embed-wrap').forEach(el=>{
       el.addEventListener('click', function(){
-        if(this.querySelector('iframe')) return;
-        const yt = this.getAttribute('data-yt');
-        this.innerHTML = `<iframe src="https://www.youtube.com/embed/${yt}" frameborder="0" allowfullscreen></iframe>`;
+        const parent = this.closest('.video-card');
+        const vid = parent && parent.getAttribute('data-id');
+        const video = videos.find(v=>v.id === vid);
+        if(video) openVideoDetail(video);
       });
     });
+
+    // detail dialog exists to show video, description, and comments
+    if(!document.getElementById('videoDialog')){
+      const d = document.createElement('dialog'); d.id='videoDialog'; d.className='modal hidden'; d.setAttribute('aria-hidden','true');
+      d.innerHTML = `<div class="modal-content"><button id="videoDialogClose" class="modal-close" aria-label="Close">✕</button><div id="videoDialogInner"></div></div>`;
+      document.body.appendChild(d);
+      document.getElementById('videoDialogClose').addEventListener('click', ()=>{ closeVideoDetail(); });
+    }
 
     // attach comment handlers (use closest comments container to find video id)
     catalog.querySelectorAll('.comment-submit').forEach(btn=>{
@@ -130,6 +152,12 @@
 
   // Add video admin form (grandma can add new videos)
   async function initAddVideoForm(){
+    const adminToggle = document.createElement('div'); adminToggle.style.marginBottom='12px';
+    adminToggle.innerHTML = `<button id="adminToggle" class="btn secondary">Admin</button> <span style="margin-left:10px;color:#666;font-size:13px">(Click to reveal the Add Video form)</span>`;
+    const section = document.querySelector('.container');
+    section.insertBefore(adminToggle, section.querySelector('#videoCatalog'));
+
+    const wrapper = document.createElement('div'); wrapper.id='addVideoAdmin'; wrapper.style.display='none';
     const container = document.createElement('div'); container.className='card'; container.style.marginBottom='16px';
     container.innerHTML = `
       <h3>Add New Video (admin)</h3>
@@ -146,8 +174,27 @@
       </form>
       <p style="font-size:13px;color:#666;margin-top:8px">Tip: paste a full YouTube URL or the video id.</p>
     `;
-    const section = document.querySelector('.container');
-    section.insertBefore(container, section.querySelector('#videoCatalog'));
+    wrapper.appendChild(container);
+    section.insertBefore(wrapper, section.querySelector('#videoCatalog'));
+
+    // admin toggle: shows login dialog or logs out if already signed in
+    document.getElementById('adminToggle').addEventListener('click', function(){
+      if(isAdmin()){
+        // logout
+        setAdmin(false);
+        wrapper.style.display='none';
+        this.innerText = 'Admin';
+        alert('Logged out');
+        return;
+      }
+      showAdminDialog();
+    });
+
+    // ensure initial admin state respected
+    if(isAdmin()){
+      wrapper.style.display='block';
+      document.getElementById('adminToggle').innerText = 'Admin (signed in) - Logout';
+    }
 
     document.getElementById('addVideoForm').addEventListener('submit', async function(e){
       e.preventDefault();
@@ -159,7 +206,6 @@
       if(!youtubeId || !title) return alert('YouTube ID and Title are required');
       try{
         const saved = await saveVideo({youtubeId,title,date,desc,createdAt:new Date()});
-        // If Firestore returns an id, map it; otherwise saved will include id
         const newId = saved.id || saved.name || ('vid-'+Date.now());
         const newV = {id:newId,youtubeId,title,date,desc};
         videos.unshift(newV);

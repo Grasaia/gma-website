@@ -112,11 +112,69 @@ function closePortfolioModal(){
 // attach modal close handler
 document.addEventListener('click', function(ev){
   const dialog = document.getElementById('portfolioDialog');
-  if(!dialog) return;
-  const closeBtn = document.getElementById('portfolioModalClose');
-  if(ev.target === closeBtn) closePortfolioModal();
-  if(ev.target === dialog) closePortfolioModal();
+  if(dialog){
+    const closeBtn = document.getElementById('portfolioModalClose');
+    if(ev.target === closeBtn) closePortfolioModal();
+    if(ev.target === dialog) closePortfolioModal();
+  }
+  // video dialog backdrop click
+  const vdialog = document.getElementById('videoDialog'); if(vdialog && ev.target === vdialog) closeVideoDetail();
 });
+
+// VIDEO DETAIL DIALOG
+function openVideoDetail(video){
+  const dialog = document.getElementById('videoDialog');
+  const inner = document.getElementById('videoDialogInner');
+  inner.innerHTML = `
+    <h2>${video.title}</h2>
+    <div class="embed-wrap" style="margin-top:12px"><iframe src="https://www.youtube.com/embed/${video.youtubeId}" frameborder="0" allowfullscreen></iframe></div>
+    <p style="margin-top:12px;color:var(--color-muted)">${video.date?('Posted: '+video.date):''}</p>
+    <p>${video.desc||''}</p>
+    <div class="card" style="margin-top:12px" id="video-comments">
+      <h4>Comments</h4>
+      <input placeholder="Your name" id="v-comment-name">
+      <textarea placeholder="Your message" id="v-comment-msg"></textarea>
+      <button id="v-comment-submit" class="btn">Submit</button>
+      <div class="comments-list" id="v-comments-list"></div>
+    </div>
+  `;
+
+  // show dialog
+  if(dialog && dialog.showModal) dialog.showModal(); else if(dialog) dialog.classList.remove('hidden');
+  if(dialog) dialog.setAttribute('aria-hidden','false');
+
+  // wire comment submit inside dialog
+  document.getElementById('v-comment-submit').addEventListener('click', async function(){
+    const name = document.getElementById('v-comment-name').value.trim() || 'Anonymous';
+    const message = document.getElementById('v-comment-msg').value.trim();
+    if(!message) return alert('Please write a message');
+    this.classList.add('pressed'); this.disabled=true; this.innerText='Posting...';
+    try{ await saveComment({videoId:video.id,name,message,createdAt:new Date()});
+      document.getElementById('v-comment-msg').value='';
+      await loadVideoComments(video.id);
+    }catch(e){ alert('Error saving comment'); }
+    finally{ this.disabled=false; this.classList.remove('pressed'); this.innerText='Submit'; }
+  });
+
+  // load comments
+  loadVideoComments(video.id);
+}
+
+async function closeVideoDetail(){
+  const dialog = document.getElementById('videoDialog');
+  if(dialog && dialog.close) { dialog.close(); } else if(dialog) { dialog.classList.add('hidden'); }
+  const inner = document.getElementById('videoDialogInner'); if(inner) inner.innerHTML='';
+}
+
+async function loadVideoComments(videoId){
+  const list = document.getElementById('v-comments-list'); if(!list) return; list.innerHTML='Loading...';
+  try{
+    const comments = await getCommentsForVideo(videoId);
+    if(!comments.length){ list.innerHTML='<p>No comments yet.</p>'; return; }
+    list.innerHTML='';
+    comments.forEach(c=>{ const div=document.createElement('div'); div.className='comment'; div.innerHTML=`<div class="meta">${c.name} • ${fmtDate(c.createdAt)}</div><div class="text">${c.message}</div>`; list.appendChild(div); });
+  }catch(e){ list.innerHTML='<p>Error loading comments.</p>'; }
+}
 
 // close dialogs on ESC
 document.addEventListener('keydown', function(ev){
@@ -125,6 +183,39 @@ document.addEventListener('keydown', function(ev){
     const ddialog = document.getElementById('donationDialog'); if(ddialog && (ddialog.open || !ddialog.classList.contains('hidden'))) { if(ddialog.close) ddialog.close(); else ddialog.classList.add('hidden'); }
   }
 });
+
+// small admin constants & helpers
+const ADMIN_PASSCODE = 'Pamela1969';
+function isAdmin(){ return sessionStorage.getItem('gma_admin') === '1'; }
+function setAdmin(val){ if(val) sessionStorage.setItem('gma_admin','1'); else sessionStorage.removeItem('gma_admin'); updateAdminUI(); }
+
+function createAdminDialog(){
+  if(document.getElementById('adminDialog')) return;
+  const d = document.createElement('dialog'); d.id='adminDialog'; d.className='modal hidden'; d.innerHTML = `
+    <div class="modal-content">
+      <button id="adminDialogClose" class="modal-close" aria-label="Close">✕</button>
+      <h3>Admin Login</h3>
+      <p>Enter passcode to reveal admin features.</p>
+      <input id="adminPassInput" placeholder="Passcode" style="width:100%;padding:10px;margin-top:8px;border-radius:6px;border:1px solid #ccc">
+      <div style="margin-top:12px;text-align:right"><button id="adminLoginBtn" class="btn">Unlock</button></div>
+      <div id="adminLoginMsg" style="margin-top:10px;color:red;display:none"></div>
+    </div>
+  `;
+  document.body.appendChild(d);
+  document.getElementById('adminDialogClose').addEventListener('click', ()=>{ closeAdminDialog(); });
+  document.getElementById('adminLoginBtn').addEventListener('click', ()=>{ handleAdminLogin(); });
+  document.getElementById('adminPassInput').addEventListener('keyup', (e)=>{ if(e.key==='Enter') handleAdminLogin(); });
+}
+function showAdminDialog(){ createAdminDialog(); const d=document.getElementById('adminDialog'); if(d.showModal) d.showModal(); else d.classList.remove('hidden'); }
+function closeAdminDialog(){ const d=document.getElementById('adminDialog'); if(d.close) d.close(); else d.classList.add('hidden'); document.getElementById('adminPassInput').value=''; document.getElementById('adminLoginMsg').style.display='none'; }
+function handleAdminLogin(){ const v = document.getElementById('adminPassInput').value.trim(); const msg = document.getElementById('adminLoginMsg'); if(v===ADMIN_PASSCODE){ setAdmin(true); msg.style.display='none'; closeAdminDialog(); alert('Admin unlocked'); } else { msg.style.display='block'; msg.innerText='Incorrect passcode'; }}
+
+function updateAdminUI(){ const wrapper = document.getElementById('addVideoAdmin'); const toggle = document.getElementById('adminToggle'); if(!toggle) return; if(isAdmin()){ if(wrapper) wrapper.style.display='block'; toggle.innerText = 'Admin (signed in) - Logout'; }else{ if(wrapper) wrapper.style.display='none'; toggle.innerText = 'Admin'; }}
+
+// hamburger menu handler
+function initHamburger(){ const btn = document.getElementById('hamburgerBtn'); if(!btn) return; btn.addEventListener('click', ()=>{ const header = btn.closest('.site-header'); if(header.classList.contains('open')) header.classList.remove('open'); else header.classList.add('open'); });
+  // close nav on link click
+  document.querySelectorAll('.site-header nav.primary a').forEach(a=>a.addEventListener('click', ()=>{ const header = document.querySelector('.site-header'); if(header) header.classList.remove('open'); })); }
 
 // render portfolio when DOM ready
 document.addEventListener('DOMContentLoaded', function(){ renderPortfolio();
@@ -149,6 +240,10 @@ document.addEventListener('DOMContentLoaded', function(){ renderPortfolio();
       result.style.display='block'; result.innerHTML = `Payment successful (demo). Amount donated: $${selectedAmount}`;
     });
   }
+
+  initHamburger();
+  createAdminDialog();
+  updateAdminUI();
 });
 
 async function saveComment({videoId,name,message,createdAt=new Date()}){

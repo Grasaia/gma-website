@@ -27,3 +27,11 @@ Notes: the site also has a local fallback using `localStorage` so comments and c
 ## Firebase
 - When you're ready to use Firestore, paste your Firebase config object into `scripts.js` (the `firebaseConfig` constant). The site already supports Firestore for comments, messages, and events with a localStorage fallback for testing.
 
+## Design updates (Ligonier-inspired)
+- Global styles updated: **Merriweather** for headings and **Inter** for body text (Google Fonts included). Color palette refined to deep navy and warm gold. Buttons and cards were restyled for a professional, consistent look.
+- Header and top navigation replaced with a site header (logo + primary nav + Donate CTA). This is now consistent across pages.
+- Hero section and card styles updated (improved spacing, image thumbnails, "Newest" badge for latest video).
+- Teachings: video catalog uses thumbnails and opens a detail dialog showing the video, description, and comments. There's an **Admin** toggle on the Teachings page to reveal the Add Video form (simple prompt protection).
+- Mobile responsive layout and accessibility improvements applied.
+
+
