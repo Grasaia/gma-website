@@ -41,12 +41,19 @@ nav.primary a:hover{opacity:0.92}
 
 /* Hero */
 .hero{display:grid;grid-template-columns:1fr 1fr;gap:32px;max-width:var(--max-width);margin:0 auto;padding:48px 16px}
-.landing{background:linear-gradient(180deg,var(--color-primary) 0%, rgba(11,61,145,0.95) 100%);color:#fff}
+.landing{background:linear-gradient(180deg,var(--color-primary) 0%, rgba(11,61,145,0.95) 100%);color:#fff;min-height:60vh}
 .hero-text h1{font-family:Merriweather,serif;font-size:34px;margin:0 0 12px}
 .hero-text p{max-width:520px;color:rgba(255,255,255,0.95)}
 .hero .btn{margin-top:16px}
-.hero-image img{width:100%;border-radius:var(--radius);display:block}
-@media(max-width:900px){.hero{grid-template-columns:1fr;padding:32px} .hero-text h1{font-size:28px}}
+/* constrain hero image so it doesn't dominate */
+.hero-image img{width:100%;max-width:420px;border-radius:var(--radius);display:block}
+
+/* compact page-level hero for subpages */
+.page-hero{display:flex;gap:24px;align-items:center;padding:24px 0}
+.page-hero .hero-image{flex:0 0 220px}
+.page-hero .hero-image img{width:100%;height:auto;border-radius:10px}
+.page-hero .hero-text h1{font-family:Merriweather,serif;margin:0;font-size:28px}
+@media(max-width:900px){.hero{grid-template-columns:1fr;padding:32px} .hero-text h1{font-size:28px}.page-hero{flex-direction:column}.page-hero .hero-image{flex:0 0 auto;width:80%}}
 
 /* Portfolio gallery */
 .gallery-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
