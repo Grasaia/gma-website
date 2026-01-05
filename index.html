@@ -17,54 +17,43 @@ footer{background:#111;color:#fff;padding:30px}
 .widgets a{color:#fff;text-decoration:none}
 textarea,input{width:100%;padding:10px;margin:10px 0;border-radius:4px;border:1px solid #ccc}
 button{padding:10px 18px;border:none;background:#111;color:#fff;border-radius:4px}
+.video-card{background:#fff;padding:15px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.1)}
+.video-card h4{margin:10px 0 5px}
+.video-card small{color:#777}
+.video-card a{display:inline-block;margin-top:8px;color:#111;text-decoration:underline}
+.landing{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#111;color:#fff}
+.hero{display:grid;grid-template-columns:1fr 1fr;gap:40px;max-width:1000px;padding:40px}
+.hero-text p{max-width:450px}
+.hero-image img{width:100%;border-radius:12px}
+@media(max-width:800px){.hero{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
+<header class="landing">
+<div class="hero">
+<div class="hero-text">
+<h1>Spreading God’s Word Through Teaching & Encouragement</h1>
+<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus luctus urna sed urna ultricies ac tempor dui sagittis.</p>
+<a href="teachings.html" class="btn">Watch Latest Teaching</a>
+</div>
+<div class="hero-image">
+<img src="profile.jpg" alt="Grandma photo placeholder">
+</div>
+</div>
+</header>
 <header>
 <h1>Spreading God’s Word Through Teaching & Encouragement</h1>
 <p>A ministry dedicated to strengthening faith and walking in truth.</p>
 <a href="#teachings" class="btn">Watch Latest Teaching</a>
 </header>
 
-<nav>
-<a href="#home">Home</a>
-<a href="#teachings">Teachings</a>
-<a href="#about">About</a>
-<a href="#contact">Contact</a>
-</nav>
 
-<section id="teachings">
-<h2>Teachings</h2>
-<p>Watch all teachings and messages on our YouTube channel.</p>
-<a href="#" class="btn">Visit YouTube Channel</a>
-<div class="video-catalog">
-<!-- Videos will appear here -->
-</div>
-<div class="comments">
-<h3>Leave a Message</h3>
-<textarea placeholder="Your thoughts..."></textarea>
-<button>Submit</button>
-</div>
-</section>
 
-<section id="about">
-<h2>About</h2>
-<img src="profile.jpg" alt="Profile Photo">
-<p>Testimony and calling text here.</p>
-<p>More about the ministry and purpose.</p>
-<p><strong>Mission:</strong> To spread faith and encouragement.</p>
-</section>
 
-<section id="contact">
-<h2>Contact</h2>
-<form>
-<input type="email" placeholder="Your email"><br>
-<textarea placeholder="Message"></textarea><br>
-<button>Send</button>
-</form>
-<h3>Prayer Request</h3>
-<textarea placeholder="Submit prayer request"></textarea>
-</section>
+
+
+
+
 
 <footer>
 <div class="widgets">
