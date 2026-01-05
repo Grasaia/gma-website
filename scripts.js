@@ -71,6 +71,86 @@ async function getUpcomingEvents(){
   }
 }
 
+// -----------------
+// Portfolio gallery
+// -----------------
+const portfolioItems = [
+  {id:'p1',title:'Sunday Service Highlights',desc:'A short collection of moments from Sunday services.',img:'img/gma-pfp.jpg'},
+  {id:'p2',title:'Mission Trip 2025',desc:'Photos and short clips from the mission trip.',img:'img/gma-pfp.jpg'},
+  {id:'p3',title:'Teaching Gallery',desc:'Selected sermon snapshots and resources.',img:'img/gma-pfp.jpg'}
+];
+
+function renderPortfolio(){
+  const grid = document.getElementById('portfolioGrid');
+  if(!grid) return;
+  grid.innerHTML='';
+  portfolioItems.forEach(item=>{
+    const div = document.createElement('div'); div.className='gallery-item card';
+    div.innerHTML = `<img src="${item.img}" alt="${item.title}"><div class="overlay"><strong>${item.title}</strong><div style="font-size:13px;margin-top:4px">${item.desc}</div></div>`;
+    div.addEventListener('click',()=> openPortfolioModal(item));
+    grid.appendChild(div);
+  });
+}
+
+function openPortfolioModal(item){
+  const dialog = document.getElementById('portfolioDialog');
+  const inner = document.getElementById('portfolioModalInner');
+  inner.innerHTML = `<h2>${item.title}</h2><p>${item.desc}</p>`;
+  // if youtube id present, embed video
+  if(item.youtubeId){ inner.innerHTML += `<div class="embed-wrap" style="margin-top:12px"><iframe src="https://www.youtube.com/embed/${item.youtubeId}" frameborder="0" allowfullscreen></iframe></div>`; }
+  else if(item.img){ inner.innerHTML += `<img src="${item.img}" alt="${item.title}" style="margin-top:12px">`; }
+  if(item.link) inner.innerHTML += `<p style="margin-top:8px"><a href="${item.link}" target="_blank">Open resource</a></p>`;
+  if(dialog && dialog.showModal) { dialog.showModal(); } else if(dialog) { dialog.classList.remove('hidden'); }
+  if(dialog) dialog.setAttribute('aria-hidden','false');
+}
+function closePortfolioModal(){
+  const dialog = document.getElementById('portfolioDialog');
+  if(dialog && dialog.close) { dialog.close(); } else if(dialog) { dialog.classList.add('hidden'); }
+  const inner = document.getElementById('portfolioModalInner'); inner.innerHTML='';
+}
+
+// attach modal close handler
+document.addEventListener('click', function(ev){
+  const dialog = document.getElementById('portfolioDialog');
+  if(!dialog) return;
+  const closeBtn = document.getElementById('portfolioModalClose');
+  if(ev.target === closeBtn) closePortfolioModal();
+  if(ev.target === dialog) closePortfolioModal();
+});
+
+// close dialogs on ESC
+document.addEventListener('keydown', function(ev){
+  if(ev.key === 'Escape'){
+    const dialog = document.getElementById('portfolioDialog'); if(dialog && (dialog.open || !dialog.classList.contains('hidden'))) closePortfolioModal();
+    const ddialog = document.getElementById('donationDialog'); if(ddialog && (ddialog.open || !ddialog.classList.contains('hidden'))) { if(ddialog.close) ddialog.close(); else ddialog.classList.add('hidden'); }
+  }
+});
+
+// render portfolio when DOM ready
+document.addEventListener('DOMContentLoaded', function(){ renderPortfolio();
+
+  // donation demo modal handlers
+  const openDonateBtn = document.getElementById('openDonateDemo');
+  if(openDonateBtn){
+    const dmodal = document.getElementById('donationModal');
+    const dclose = document.getElementById('donationClose');
+    const donateSimBtn = document.getElementById('donateSimBtn');
+    const result = document.getElementById('donationResult');
+    const amounts = document.querySelectorAll('.donation-amounts button');
+    let selectedAmount = 25;
+    amounts.forEach(a=>a.addEventListener('click',()=>{ amounts.forEach(x=>x.style.opacity=0.6); a.style.opacity=1; selectedAmount = a.getAttribute('data-amount'); }));
+    openDonateBtn.addEventListener('click',function(){ dmodal.classList.remove('hidden'); dmodal.setAttribute('aria-hidden','false'); result.style.display='none'; result.innerHTML=''; });
+    dclose.addEventListener('click',()=>{ dmodal.classList.add('hidden'); dmodal.setAttribute('aria-hidden','true'); });
+    donateSimBtn.addEventListener('click',async function(){
+      donateSimBtn.disabled = true; donateSimBtn.innerText = 'Processing...';
+      // Simulate network delay
+      await new Promise(r=>setTimeout(r,1200));
+      donateSimBtn.disabled = false; donateSimBtn.innerText = 'Simulate Payment';
+      result.style.display='block'; result.innerHTML = `Payment successful (demo). Amount donated: $${selectedAmount}`;
+    });
+  }
+});
+
 async function saveComment({videoId,name,message,createdAt=new Date()}){
   if(db){
     return db.collection('comments').add({videoId,name,message,createdAt});

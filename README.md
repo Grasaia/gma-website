@@ -21,7 +21,8 @@ Notes: the site also has a local fallback using `localStorage` so comments and c
 - The `bookings.html` page includes a Calendly inline widget with a placeholder URL (`https://calendly.com/your-username/30min`). Replace it with your Calendly scheduling link.
 
 ## Stripe
-- `donations.html` contains a demo Stripe button (links to Stripe). Full Stripe Checkout requires server-side session creation — I can add that when you are ready.
+- `donations.html` contains a demo Stripe Checkout modal that simulates a payment flow locally.
+- To add a real Stripe Checkout, you will need a small server endpoint that creates a Checkout Session (using your Stripe secret key) and returns the session id. I can add that server code (Node/Express or serverless function) when you're ready.
 
 ## Firebase
 - When you're ready to use Firestore, paste your Firebase config object into `scripts.js` (the `firebaseConfig` constant). The site already supports Firestore for comments, messages, and events with a localStorage fallback for testing.

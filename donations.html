@@ -24,8 +24,28 @@
 
     <div class="card" style="margin-top:12px;">
       <h2>Stripe (demo)</h2>
-      <p>Stripe Checkout requires a server to create sessions. For now this is a demo button that links to Stripe's site. When you're ready I can add a full Checkout integration.</p>
-      <a class="btn" href="https://stripe.com/pay" target="_blank">Donate with Stripe (demo)</a>
+      <p>Stripe Checkout requires a server to create sessions. Below is a demo Checkout modal that simulates a payment flow locally. When you're ready I can wire a real Stripe Checkout or create the server endpoint.</p>
+      <button id="openDonateDemo" class="btn">Donate (Demo Checkout)</button>
+
+      <!-- Donation modal (demo) -->
+      <dialog id="donationDialog" class="modal donation-modal hidden" aria-hidden="true">
+        <div class="modal-content">
+          <button id="donationClose" class="modal-close" aria-label="Close">✕</button>
+          <h2>Donate (Demo)</h2>
+          <p>Select an amount:</p>
+          <div class="donation-amounts">
+            <button data-amount="10">$10</button>
+            <button data-amount="25">$25</button>
+            <button data-amount="50">$50</button>
+          </div>
+          <p>Enter card info (demo only):</p>
+          <input placeholder="Name on card">
+          <input placeholder="Card number">
+          <div style="margin-top:12px"><button id="donateSimBtn" class="btn">Simulate Payment</button></div>
+          <div id="donationResult" style="display:none;margin-top:12px" class="donation-success"></div>
+        </div>
+      </dialog>
+
     </div>
   </section>
 

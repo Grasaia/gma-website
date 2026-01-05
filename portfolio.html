@@ -15,11 +15,18 @@
 
   <section class="container">
     <h1>Portfolio / Gallery</h1>
-    <p>Gallery or ministry highlights will be here.</p>
-    <div class="video-catalog">
-      <div class="video-card"><h4>Highlight 1</h4><p>Short description.</p></div>
-      <div class="video-card"><h4>Highlight 2</h4><p>Short description.</p></div>
-    </div>
+    <p>Gallery or ministry highlights will be here. Click an item to see more details.</p>
+
+    <div id="portfolioGrid" class="gallery-grid"></div>
+
+    <!-- Modal for item detail -->
+    <dialog id="portfolioDialog" class="modal hidden" aria-hidden="true">
+      <div class="modal-content">
+        <div id="portfolioModalInner"></div>
+        <button id="portfolioModalClose" class="modal-close" aria-label="Close">✕</button>
+      </div>
+    </dialog>
+
   </section>
 
   <footer>
